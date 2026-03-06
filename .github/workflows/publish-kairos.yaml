@@ -43,7 +43,7 @@ jobs:
       - name: Compute tag and kairos version
         id: release-tag
         run: |
-          distro=${{ matrix.distro }}
+          distro=$(echo ${{matrix.distro}} | grep -oE '[a-zA-Z]+')
           distro_major_version=$(echo ${distro} | grep -oE '[0-9]+')
           kairos_init_version=$(grep "^FROM quay.io/kairos/kairos-init:" images/${distro}/Dockerfile.${distro_major_version} | cut -d':' -f2 | awk -F '[@]' '{print $1}')
           tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
