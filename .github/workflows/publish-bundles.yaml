@@ -1,5 +1,5 @@
 ---
-name: Build and publish
+name: Publish bundles
 
 on:
   release:
