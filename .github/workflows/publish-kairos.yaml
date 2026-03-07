@@ -11,8 +11,7 @@ env:
 
 jobs:
   build-and-push-image:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       packages: write
@@ -45,9 +44,9 @@ jobs:
       - name: Compute tag and kairos version
         id: release-tag
         run: |-
-          distro=$(echo ${{matrix.distro}} | grep -oE '[a-zA-Z]+')
+          distro="$(echo "${{matrix.distro}}" | grep -oE '[a-zA-Z]+')"
           distro_major_version=$(echo "${{matrix.distro}}" | grep -oE '[0-9]+')
-          kairos_init_version=$(grep "^FROM quay.io/kairos/kairos-init:" images/${distro}/Dockerfile.${distro_major_version} | cut -d':' -f2 | awk -F '[@]' '{print $1}')
+          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" images/${distro}/Dockerfile.${distro_major_version} | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
           tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
           release_tag="${{ github.event.release.tag_name }}"
           echo "distro=${distro}" >> "$GITHUB_OUTPUT"
