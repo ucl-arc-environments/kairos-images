@@ -45,14 +45,12 @@ jobs:
         id: release-tag
         # shellcheck disable=SC2129
         run: |-
-          distro="$(echo "${{matrix.distro}}" | grep -oE '[a-zA-Z]+')"
-          distro_major_version=$(echo "${{matrix.distro}}" | grep -oE '[0-9]+')
-          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" images/"${distro}"/Dockerfile."${distro_major_version}" | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
+          distro=$(echo ${{matrix.distro}} | grep -oE '[a-zA-Z]+')
+          distro_major_version=$(echo ${{matrix.distro}} | grep -oE '[0-9]+')
+          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" "images/${distro}/Dockerfile.${distro_major_version}" | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
           tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
           release_tag="${{ github.event.release.tag_name }}"
-          echo "distro=${distro}" >> "$GITHUB_OUTPUT"
-          echo "distro_major_version=${distro_major_version}" >> "$GITHUB_OUTPUT"
-          echo "image_tag=${tag//+/-}" >> "$GITHUB_OUTPUT"
+          echo "distro=${distro},distro_major_version=${distro_major_version},image_tag=${tag//+/-}" >> "$GITHUB_OUTPUT"
           echo "kairos_version=${release_tag}-${{matrix.distro}}" >> "$GITHUB_OUTPUT"
 
       - name: Extract tags and labels

@@ -38,9 +38,7 @@ jobs:
           python-version: 3.14
 
       - name: Install prek
-        shell: bash
         run: uv pip install prek
 
       - name: Run prek
-        shell: bash
         run: uv run prek run --all-files --color always --verbose
