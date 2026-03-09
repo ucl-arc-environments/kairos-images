@@ -1,0 +1,44 @@
+---
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+      - renovate/**
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+
+concurrency:
+  cancel-in-progress: true
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Cache prek
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5
+        with:
+          path: ~/.cache/prek
+          key: cache-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@06e4edb239928eb926db9fa84abd11632bf44baa # v7
+        with:
+          activate-environment: true
+          python-version: 3.14
+
+      - name: Install prek
+        run: uv pip install prek
+
+      - name: Run prek
+        run: uv run prek run --all-files --color always --verbose

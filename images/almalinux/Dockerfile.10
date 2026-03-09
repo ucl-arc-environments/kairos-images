@@ -1,0 +1,61 @@
+FROM quay.io/kairos/kairos-init:v0.7.1@sha256:7452a96c41f6fac83dfbbf82ebaa75e3e5147330e3c6352ae69d6a6f79acfdac AS kairos-init
+
+FROM almalinux:10@sha256:3ea6bed76e47c1a816ed7e1ed7be8661efcf6984bec90bcad5ec73b66b6754ce AS base-kairos
+
+ARG KUBERNETES_DISTRO=k3s
+ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
+# renovate: datasource=custom.k3s depName=k3s
+ARG KUBERNETES_VERSION=v1.35.1+k3s1
+ARG MODEL=generic
+ARG TRUSTED_BOOT=false
+ARG VERSION
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init \
+  -s install \
+  --fips \
+  -p "${KUBERNETES_DISTRO}" \
+  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
+  -l debug \
+  -m "${MODEL}" \
+  -t "${TRUSTED_BOOT}" \
+  --version "${VERSION}"
+
+# hadolint ignore=DL3041
+RUN dnf update && dnf install -y \
+  cifs-utils \
+  nmstate \
+  python3-pip && \
+  dnf clean all
+
+# hadolint ignore=DL3013,DL3059
+RUN python3 -m pip install --no-cache-dir --target /usr/lib/python3.12/site-packages --upgrade pip
+
+# hadolint ignore=DL3013,DL3059
+RUN python3 -m pip install --no-cache-dir --target /usr/lib/python3.12/site-packages \
+  packaging \
+  requests \
+  setuptools \
+  wheel
+
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
+  chmod 700 get_helm.sh && \
+  HELM_INSTALL_DIR=/usr/bin VERIFY_CHECKSUM=false ./get_helm.sh && \
+  rm get_helm.sh
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init \
+  -s init \
+  --fips \
+  -p "${KUBERNETES_DISTRO}" \
+  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
+  -l debug \
+  -m "${MODEL}" \
+  -t "${TRUSTED_BOOT}" \
+  --version "${VERSION}"
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init validate -t "${TRUSTED_BOOT}"

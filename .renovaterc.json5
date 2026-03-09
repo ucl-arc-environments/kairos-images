@@ -1,0 +1,62 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:best-practices",
+    "schedule:monthly",
+    ":automergeBranch",
+    ":disableDependencyDashboard",
+    ":enablePreCommit",
+    ":label(renovate)",
+    ":prHourlyLimitNone",
+    ":prNotPending",
+  ],
+  commitMessageAction: "Renovate:",
+  packageRules: [
+    {
+      description: "Automatically merge, minor and patch-level updates",
+      automerge: true,
+      matchManagers: ["dockerfile", "github-actions", "pre-commit"],
+      matchUpdateTypes: ["digest", "minor", "patch"],
+    },
+    {
+      description: "Shorten commit titles",
+      commitMessageTopic: "{{depName}}",
+      matchManagers: ["github-actions", "pre-commit"],
+    },
+    {
+      description: "Only allow major updates",
+      enabled: false,
+      matchDepNames: ["renovatebot/pre-commit-hooks"],
+      matchUpdateTypes: ["minor", "patch", "pin"],
+    },
+    {
+      description: "Support loose versioning",
+      matchDepNames: ["cmhughes/latexindent.pl", "shellcheck-py/shellcheck-py"],
+      versioning: "loose",
+    },
+  ],
+  customDatasources: {
+    k3s: {
+      defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
+      transformTemplates: [
+        '{"releases":[{"version": $$.(data[id = \'stable\'].latest),"sourceUrl":"https://github.com/k3s-io/k3s","changelogUrl":$join(["https://github.com/k3s-io/k3s/releases/tag/",data[id = \'stable\'].latest])}],"sourceUrl": "https://github.com/k3s-io/k3s","homepage": "https://k3s.io/"}',
+      ],
+    },
+  },
+  customManagers: [
+    {
+      customType: "regex",
+      fileMatch: ["^.*Dockerfile.*$"],
+      matchStrings: [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+?)\\n",
+      ],
+    },
+    {
+      customType: "regex",
+      fileMatch: ["^.*publish-kairos.*$"],
+      matchStrings: [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\n\\s*-\\s+(?<currentValue>.+?)\\n",
+      ],
+    },
+  ],
+}
