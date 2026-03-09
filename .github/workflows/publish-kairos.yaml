@@ -66,7 +66,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
-          context: .
+          context: images/${{ steps.release-tag.outputs.distro }}
           file:
             images/${{ steps.release-tag.outputs.distro }}/Dockerfile.${{
             steps.release-tag.outputs.distro_major_version }}
