@@ -30,10 +30,11 @@
       matchUpdateTypes: ["minor", "patch", "pin"],
     },
     {
-      description: "Only allow patch updates for k3s",
+      description: "Only allow patch updates for k3s in publish workflow",
       enabled: false,
       matchDatasources: ["custom.k3s"],
-      matchDepNames: ["k3s"],
+      matchDepNames: ["k3s_build"],
+      matchFileNames: [".github/workflows/publish-kairos.yaml"],
       matchUpdateTypes: ["major", "minor", "pin"],
     },
     {
