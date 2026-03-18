@@ -30,12 +30,11 @@
       matchUpdateTypes: ["minor", "patch", "pin"],
     },
     {
-      description: "Only allow patch and pin updates",
+      description: "Only allow patch updates for k3s",
       enabled: false,
       matchDatasources: ["custom.k3s"],
       matchDepNames: ["k3s"],
-      matchFileNames: ["^.*publish-kairos.*$"],
-      matchUpdateTypes: ["major", "minor"],
+      matchUpdateTypes: ["major", "minor", "pin"],
     },
     {
       description: "Support loose versioning",
