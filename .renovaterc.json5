@@ -1,81 +1,51 @@
 {
-  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    'config:best-practices',
-    'schedule:monthly',
-    ':automergeBranch',
-    ':disableDependencyDashboard',
-    ':enablePreCommit',
-    ':label(renovate)',
-    ':prHourlyLimitNone',
-    ':prNotPending',
+    "config:best-practices",
+    "schedule:monthly",
+    ":automergeBranch",
+    ":disableDependencyDashboard",
+    ":enablePreCommit",
+    ":label(renovate)",
+    ":prHourlyLimitNone",
+    ":prNotPending",
   ],
-  commitMessageAction: 'Renovate:',
+  commitMessageAction: "Renovate:",
   packageRules: [
     {
-      description: 'Automatically merge, minor and patch-level updates',
+      description: "Automatically merge, minor and patch-level updates",
       automerge: true,
-      matchManagers: [
-        'dockerfile',
-        'github-actions',
-        'pre-commit',
-      ],
-      matchUpdateTypes: [
-        'digest',
-        'minor',
-        'patch',
-      ],
+      matchManagers: ["dockerfile", "github-actions", "pre-commit"],
+      matchUpdateTypes: ["digest", "minor", "patch"],
     },
     {
-      description: 'Shorten commit titles',
-      commitMessageTopic: '{{depName}}',
-      matchManagers: [
-        'github-actions',
-        'pre-commit',
-      ],
+      description: "Shorten commit titles",
+      commitMessageTopic: "{{depName}}",
+      matchManagers: ["github-actions", "pre-commit"],
     },
     {
-      description: 'Only allow major updates',
+      description: "Only allow major updates",
       enabled: false,
-      matchDepNames: [
-        'renovatebot/pre-commit-hooks',
-      ],
-      matchUpdateTypes: [
-        'minor',
-        'patch',
-        'pin',
-      ],
+      matchDepNames: ["renovatebot/pre-commit-hooks"],
+      matchUpdateTypes: ["minor", "patch", "pin"],
     },
     {
-      description: 'Only allow patch updates for k3s in publish workflow',
+      description: "Only allow patch updates for k3s in publish workflow",
       enabled: false,
-      matchDatasources: [
-        'custom.k3s',
-      ],
-      matchDepNames: [
-        'k3s_build',
-      ],
-      matchFileNames: [
-        '.github/workflows/publish-kairos.yaml',
-      ],
-      matchUpdateTypes: [
-        'major',
-        'minor',
-        'pin',
-      ],
+      matchDatasources: ["custom.k3s"],
+      matchDepNames: ["k3s_build"],
+      matchFileNames: [".github/workflows/publish-kairos.yaml"],
+      matchUpdateTypes: ["major", "minor", "pin"],
     },
     {
-      description: 'Support loose versioning',
-      matchDepNames: [
-        'cmhughes/latexindent.pl',
-        'shellcheck-py/shellcheck-py',
-      ],
-      versioning: 'loose',
+      description: "Support loose versioning",
+      matchDepNames: ["cmhughes/latexindent.pl", "shellcheck-py/shellcheck-py"],
+      versioning: "loose",
     },
   ],
   customDatasources: {
     k3s: {
-      defaultRegistryUrlTemplate: 'https://update.k3s.io/v1-release/channels',
+      defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
       transformTemplates: [
         '{"releases":[{"version": $$.(data[id = \'stable\'].latest),"sourceUrl":"https://github.com/k3s-io/k3s","changelogUrl":$join(["https://github.com/k3s-io/k3s/releases/tag/",data[id = \'stable\'].latest])}],"sourceUrl": "https://github.com/k3s-io/k3s","homepage": "https://k3s.io/"}',
       ],
@@ -83,21 +53,17 @@
   },
   customManagers: [
     {
-      customType: 'regex',
-      managerFilePatterns: [
-        '/^.*Dockerfile.*$/',
-      ],
+      customType: "regex",
+      managerFilePatterns: ["/^.*Dockerfile.*$/"],
       matchStrings: [
-        '#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+?)\\n',
+        "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+?)\\n",
       ],
     },
     {
-      customType: 'regex',
-      managerFilePatterns: [
-        '/^.*publish-kairos.*$/',
-      ],
+      customType: "regex",
+      managerFilePatterns: ["/^.*publish-kairos.*$/"],
       matchStrings: [
-        '#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\n\\s*-\\s+(?<currentValue>.+?)\\n',
+        "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\n\\s*-\\s+(?<currentValue>.+?)\\n",
       ],
     },
   ],
