@@ -54,14 +54,14 @@
   customManagers: [
     {
       customType: "regex",
-      fileMatch: ["^.*Dockerfile.*$"],
+      managerFilePatterns: ["/^.*Dockerfile.*$/"],
       matchStrings: [
         "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+?)\\n",
       ],
     },
     {
       customType: "regex",
-      fileMatch: ["^.*publish-kairos.*$"],
+      managerFilePatterns: ["/^.*publish-kairos.*$/"],
       matchStrings: [
         "#\\s*renovate:\\s*datasource=(?<datasource>.+?)\\s+depName=(?<depName>.+?)\\n\\s*-\\s+(?<currentValue>.+?)\\n",
       ],
