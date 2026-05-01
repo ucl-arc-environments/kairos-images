@@ -30,7 +30,7 @@ jobs:
           # renovate: datasource=custom.k3s depName=k3s_build
           - v1.34.4+k3s1
           # renovate: datasource=custom.k3s depName=k3s_build
-          - v1.35.1+k3s1
+          - v1.35.4+k3s1
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
