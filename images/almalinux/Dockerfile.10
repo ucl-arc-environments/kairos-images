@@ -44,6 +44,11 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
   HELM_INSTALL_DIR=/usr/bin VERIFY_CHECKSUM=false ./get_helm.sh && \
   rm get_helm.sh
 
+# hadolint ignore=DL3041
+RUN dnf install -y almalinux-release-testing && \
+  dnf update -y kernel && \
+  dnf clean all
+
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init \
