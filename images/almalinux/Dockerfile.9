@@ -20,7 +20,9 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   -l debug \
   -m "${MODEL}" \
   -t "${TRUSTED_BOOT}" \
-  --version "${VERSION}"
+  --version "${VERSION}" \
+  --skip-step installKernel
+
 
 # hadolint ignore=DL3041
 RUN dnf update && dnf install -y \
@@ -36,7 +38,7 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
 
 # hadolint ignore=DL3041
 RUN dnf install -y almalinux-release-testing && \
-  dnf update -y kernel && \
+  dnf install -y kernel && \
   dnf clean all
 
 # hadolint ignore=DL3059
