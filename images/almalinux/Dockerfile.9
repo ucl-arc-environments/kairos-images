@@ -1,4 +1,4 @@
-FROM quay.io/kairos/kairos-init:v0.7.1@sha256:7452a96c41f6fac83dfbbf82ebaa75e3e5147330e3c6352ae69d6a6f79acfdac AS kairos-init
+FROM quay.io/kairos/kairos-init:v0.10.1@sha256:2225cd2b268937c040b0d325541d6b0685e8af134a5d5f0cf2611069293eaf56 AS kairos-init
 
 FROM almalinux:9@sha256:32468d75602dce128c5dcba6235978cf0fcb43616585699b481c1349fa3fd3e7 AS base-kairos
 
@@ -22,6 +22,7 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   -t "${TRUSTED_BOOT}" \
   --version "${VERSION}"
 
+
 # hadolint ignore=DL3041
 RUN dnf update && dnf install -y \
   cifs-utils \
@@ -33,6 +34,9 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
   chmod 700 get_helm.sh && \
   HELM_INSTALL_DIR=/usr/bin VERIFY_CHECKSUM=false ./get_helm.sh && \
   rm get_helm.sh
+
+# hadolint ignore=DL3041
+RUN dnf clean metadata && dnf upgrade -y
 
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
