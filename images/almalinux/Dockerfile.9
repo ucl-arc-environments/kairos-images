@@ -1,6 +1,6 @@
 FROM quay.io/kairos/kairos-init:v0.10.1@sha256:2225cd2b268937c040b0d325541d6b0685e8af134a5d5f0cf2611069293eaf56 AS kairos-init
 
-FROM almalinux:9@sha256:32468d75602dce128c5dcba6235978cf0fcb43616585699b481c1349fa3fd3e7 AS base-kairos
+FROM almalinux:9@sha256:cefd7d6e6b713c8904f700554b9d1eccedf19251edd46b5560d9dee9cc6bd0e7 AS base-kairos
 
 ARG KUBERNETES_DISTRO=k3s
 ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
@@ -34,9 +34,6 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
   chmod 700 get_helm.sh && \
   HELM_INSTALL_DIR=/usr/bin VERIFY_CHECKSUM=false ./get_helm.sh && \
   rm get_helm.sh
-
-# hadolint ignore=DL3041
-RUN dnf clean metadata && dnf upgrade -y
 
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
