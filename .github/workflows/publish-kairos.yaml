@@ -22,6 +22,7 @@ jobs:
         distro:
           - almalinux9
           - almalinux10
+          - hadron0
         k3s_version:
           # renovate: datasource=custom.k3s depName=k3s_build
           - v1.30.2+k3s1
