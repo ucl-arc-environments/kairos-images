@@ -64,4 +64,4 @@ jobs:
           push: false
           tags: latest
           build-args: |
-            "VERSION=latest-${{ matrix.distro }}"
+            "VERSION=0.0.0-dev"
