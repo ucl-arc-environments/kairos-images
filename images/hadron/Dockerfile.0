@@ -1,0 +1,39 @@
+FROM quay.io/kairos/kairos-init:v0.14.0@sha256:f9cbde8dd9f7a6c29920a55ef37d73207028d2b28c645b5dea7cc39ab5233729 AS kairos-init
+
+FROM ghcr.io/kairos-io/hadron:v0.3.0@sha256:6078ad65b486cb13658a035360f6a83d57268deaab0f5bf9ca86580c1682fc2c AS base
+
+ARG KUBERNETES_DISTRO=k3s
+ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
+# renovate: datasource=custom.k3s depName=k3s
+ARG KUBERNETES_VERSION=v1.35.4+k3s1
+ARG MODEL=generic
+ARG TRUSTED_BOOT=false
+ARG VERSION
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init \
+  -s install \
+  --fips \
+  -p "${KUBERNETES_DISTRO}" \
+  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
+  -l debug \
+  -m "${MODEL}" \
+  -t "${TRUSTED_BOOT}" \
+  --version "${VERSION}"
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init \
+  -s init \
+  --fips \
+  -p "${KUBERNETES_DISTRO}" \
+  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
+  -l debug \
+  -m "${MODEL}" \
+  -t "${TRUSTED_BOOT}" \
+  --version "${VERSION}"
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init validate -t "${TRUSTED_BOOT}"
