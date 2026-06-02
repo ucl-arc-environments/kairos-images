@@ -1,0 +1,67 @@
+---
+name: Build Kairos Images
+
+on:
+  push:
+    branches:
+      - main
+      - renovate/**
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+
+concurrency:
+  cancel-in-progress: true
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      max-parallel: 1
+      matrix:
+        distro:
+          - almalinux9
+          - almalinux10
+          - hadron0
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute distro and major version
+        id: distro_version
+        run: |-
+          distro=$(echo ${{matrix.distro}} | grep -oE '[a-zA-Z]+')
+          distro_major_version=$(echo ${{matrix.distro}} | grep -oE '[0-9]+')
+          # shellcheck disable=SC2129
+          echo "distro=${distro}" >> "$GITHUB_OUTPUT"
+          echo "distro_major_version=${distro_major_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: images/${{ steps.distro_version.outputs.distro }}
+          file:
+            images/${{ steps.distro_version.outputs.distro }}/Dockerfile.${{
+            steps.distro_version.outputs.distro_major_version }}
+          push: false
+          tags: latest
+          build-args: |
+            "VERSION=latest-${{ matrix.distro }}""
