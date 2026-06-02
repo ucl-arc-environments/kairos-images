@@ -1,6 +1,6 @@
 FROM quay.io/kairos/kairos-init:v0.14.0@sha256:f9cbde8dd9f7a6c29920a55ef37d73207028d2b28c645b5dea7cc39ab5233729 AS kairos-init
 
-FROM ghcr.io/kairos-io/hadron:v0.3.0@sha256:6078ad65b486cb13658a035360f6a83d57268deaab0f5bf9ca86580c1682fc2c AS base
+FROM ghcr.io/kairos-io/hadron:v0.3.1-amd64@sha256:356287da577637a5befacbfb5b44c432503a5c14e7421872177da193ca6b6094 AS base
 
 ARG KUBERNETES_DISTRO=k3s
 ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
