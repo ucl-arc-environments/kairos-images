@@ -180,6 +180,9 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   -t "${TRUSTED_BOOT}" \
   --version "${VERSION}"
 
+# copy the qemu-ga layer in
+COPY --from=default / /
+
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init \
@@ -195,5 +198,3 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init validate -t "${TRUSTED_BOOT}"
-
-COPY --from=default / /
