@@ -66,7 +66,7 @@ jobs:
         run: |-
           # shellcheck disable=SC2129
           image_name="${{ steps.versions.outputs.image_name }}"
-          short_tag="${distro_major_version}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}-prerelease"
+          short_tag="${{ steps.versions.outputs.distro_major_version }}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}"
           echo "image_tags=${image_name}:${short_tag//+/-}" >> "$GITHUB_OUTPUT"
 
       - name: Compute tag and kairos version
@@ -80,7 +80,7 @@ jobs:
           kairos_tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
 
           image_name="${{ steps.versions.outputs.image_name }}"
-          short_tag="${distro_major_version}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}"
+          short_tag="${{ steps.versions.outputs.distro_major_version }}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}"
 
           # shellcheck disable=SC2129
           echo "image_tags=${image_name}:${kairos_tag//+/-},${image_name}:${short_tag//+/-}" >> "$GITHUB_OUTPUT"
