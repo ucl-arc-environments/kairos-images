@@ -2,7 +2,13 @@
 
 This repository contains Dockerfiles for building
 "[Kairosified](https://kairos.io/v3.5.2/docs/advanced/creating_custom_cloud_images/)"
-images for both AlmaLinux 9 and AlmaLinux 10 and
+images for:
+
+- AlmaLinux 9
+- Almanlinux 10
+- [Hadron](https://kairos.io/hadron-docs/)
+
+Container files are also included for
 [bundle](https://kairos.io/docs/advanced/bundles/) images for day 2 operations
 in kairosified images.
 
