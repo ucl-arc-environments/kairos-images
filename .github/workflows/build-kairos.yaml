@@ -6,12 +6,18 @@ on:
     branches:
       - main
       - renovate/**
+    paths-ignore:
+      - README.md
+      - .github/workflows/*.yaml
   pull_request:
     types:
       - opened
       - ready_for_review
       - reopened
       - synchronize
+    paths-ignore:
+      - README.md
+      - .github/workflows/*.yaml
 
 concurrency:
   cancel-in-progress: true
