@@ -4,7 +4,8 @@ name: Publish Kairos images
 on:
   release:
     types:
-      - published
+      - prereleased
+      - released
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +23,7 @@ jobs:
         distro:
           - almalinux9
           - almalinux10
+          - hadron0
         k3s_version:
           # renovate: datasource=custom.k3s depName=k3s_build
           - v1.30.2+k3s1
@@ -41,19 +43,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute tag and kairos version
-        id: release-tag
+      - name: Compute tags and versions
+        id: versions
         run: |-
+          # strip numbers and letters from distro to get the name and major version
           distro=$(echo ${{matrix.distro}} | grep -oE '[a-zA-Z]+')
           distro_major_version=$(echo ${{matrix.distro}} | grep -oE '[0-9]+')
-          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" "images/${distro}/Dockerfile.${distro_major_version}" | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
-          tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
-          release_tag="${{ github.event.release.tag_name }}"
-          # shellcheck disable=SC2129
           echo "distro=${distro}" >> "$GITHUB_OUTPUT"
           echo "distro_major_version=${distro_major_version}" >> "$GITHUB_OUTPUT"
-          echo "image_tag=${tag//+/-}" >> "$GITHUB_OUTPUT"
-          echo "kairos_version=${release_tag}-${{matrix.distro}}" >> "$GITHUB_OUTPUT"
+
+          # derive the image name from the distro
+          image_name="${{ env.REGISTRY }}/ucl-arc-environments/kairos-${distro}"
+          echo "image_name=${image_name}" >> "$GITHUB_OUTPUT"
+
+          # compute an image tag based on the release tag
+          version_tag="${{ github.event.release.tag_name }}"
+          echo "kairos_version=${version_tag}-${{matrix.distro}}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute tag and kairos version
+        id: prerelease-tag
+        if: ${{ github.event.release.prerelease }}
+        run: |-
+          # shellcheck disable=SC2129
+          image_name="${{ steps.versions.outputs.image_name }}"
+          short_tag="${{ steps.versions.outputs.distro_major_version }}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}"
+          echo "image_tags=${image_name}:${short_tag//+/-}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute tag and kairos version
+        id: release-tag
+        if: ${{ !github.event.release.prerelease }}
+        run: |-
+          # get the kairos-init version from the Dockerfile
+          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" "images/${distro}/Dockerfile.${distro_major_version}" | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
+
+          # compute the image tag based on the distro version, kairos-init and k3s versions
+          kairos_tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
+
+          image_name="${{ steps.versions.outputs.image_name }}"
+          short_tag="${{ steps.versions.outputs.distro_major_version }}-k3s${{ matrix.k3s_version }}-${{ github.event.release.tag_name }}"
+
+          # shellcheck disable=SC2129
+          echo "image_tags=${image_name}:${kairos_tag//+/-},${image_name}:${short_tag//+/-}" >> "$GITHUB_OUTPUT"
 
       - name: Extract tags and labels
         id: meta
@@ -63,19 +93,32 @@ jobs:
             ${{ env.REGISTRY }}/ucl-arc-environments/kairos-${{
             steps.release-tag.outputs.distro }}
 
-      - name: Build and push image
+      - name: Build and push prerelease image
+        if: ${{ github.event.release.prerelease }}
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
-          context: images/${{ steps.release-tag.outputs.distro }}
+          context: images/${{ steps.versions.outputs.distro }}
           file:
-            images/${{ steps.release-tag.outputs.distro }}/Dockerfile.${{
-            steps.release-tag.outputs.distro_major_version }}
+            images/${{ steps.versions.outputs.distro }}/Dockerfile.${{
+            steps.versions.outputs.distro_major_version }}
           push: true
-          tags:
-            ${{ env.REGISTRY }}/ucl-arc-environments/kairos-${{
-            steps.release-tag.outputs.distro }}:${{
-            steps.release-tag.outputs.image_tag }}
+          tags: ${{ steps.prerelease-tag.outputs.image_tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            "VERSION=${{ steps.release-tag.outputs.kairos_version }}"
+            "VERSION=${{ steps.versions.outputs.kairos_version }}"
+            "KUBERNETES_VERSION=${{ matrix.k3s_version }}"
+
+      - name: Build and push release image
+        if: ${{ !github.event.release.prerelease }}
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: images/${{ steps.versions.outputs.distro }}
+          file:
+            images/${{ steps.versions.outputs.distro }}/Dockerfile.${{
+            steps.versions.outputs.distro_major_version }}
+          push: true
+          tags: ${{ steps.release-tag.outputs.image_tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            "VERSION=${{ steps.versions.outputs.kairos_version }}"
             "KUBERNETES_VERSION=${{ matrix.k3s_version }}"

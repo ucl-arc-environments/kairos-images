@@ -1,6 +1,6 @@
-FROM quay.io/kairos/kairos-init:v0.14.0@sha256:f9cbde8dd9f7a6c29920a55ef37d73207028d2b28c645b5dea7cc39ab5233729 AS kairos-init
+FROM quay.io/kairos/kairos-init:v0.14.1@sha256:69b214bfdf31c01299f364dbeae25ec2c3cee5affb314105f6782cd842671cc7 AS kairos-init
 
-FROM almalinux:9@sha256:9b719dc3150c74fd71bd24659b780ec41f5e7166dd24b7d92904125d4f63c65f AS base-kairos
+FROM almalinux:9@sha256:d2515c769e7b73f95c4fde38c0a505336ff38f14990c0b7253b77060a049a743 AS base-kairos
 
 ARG KUBERNETES_DISTRO=k3s
 ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"

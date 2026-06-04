@@ -1,0 +1,193 @@
+ARG HADRON_TOOLCHAIN_VERSION=v0.3.1@sha256:1170222343644460ca6de73f13eaba271ba946fd5d8365e73a1fbc03bbcdd91a
+
+
+FROM ghcr.io/kairos-io/hadron-toolchain:${HADRON_TOOLCHAIN_VERSION} AS downloader
+# hadolint ignore=DL3013
+RUN pip3 install --no-cache-dir meson ninja && \
+    mkdir -p /output
+WORKDIR /sources
+
+ARG QEMU_VERSION=10.1.5
+RUN curl -L https://download.qemu.org/qemu-${QEMU_VERSION}.tar.xz -o qemu.tar.xz
+
+ARG GLIB_VERSION=2.86.2
+RUN curl -L https://download.gnome.org/sources/glib/2.86/glib-${GLIB_VERSION}.tar.xz -o glib.tar.xz
+
+ARG PCRE2_VERSION=10.47
+RUN curl -L https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -o pcre2.tar.gz
+
+ARG LIBFFI_VERSION=3.5.2
+RUN curl -L https://github.com/libffi/libffi/releases/download/v${LIBFFI_VERSION}/libffi-${LIBFFI_VERSION}.tar.gz -o libffi.tar.gz
+
+RUN tar -xf pcre2.tar.gz && mv pcre2-* pcre2
+RUN tar -xf glib.tar.xz && mv glib-* glib
+RUN tar -xf libffi.tar.gz && mv libffi-* libffi
+RUN tar -xf qemu.tar.xz && mv qemu-* qemu
+
+
+# pcre2 — glib2 hard dep.
+# JIT dropped: glib's GRegex is the only consumer of pcre2 JIT, and qemu-ga
+# never touches GRegex. Saves ~50-100KB inside libpcre2-8.so.
+# pcre2 has no configure toggle to skip building the CLI tools (verified
+# against pcre2-10.47/configure.ac — only --enable-pcre2grep-libz / -libbz2
+# exist, no --disable-pcre2grep). Strip them after install instead.
+FROM downloader AS pcre2
+WORKDIR /sources/pcre2
+# hadolint ignore=SC2086
+RUN ./configure ${COMMON_CONFIGURE_ARGS} --enable-utf --enable-unicode-properties \
+    --disable-dependency-tracking
+# hadolint ignore=SC2086
+RUN make -s -j${JOBS} && \
+    make -s -j${JOBS} install DESTDIR=/output
+# CLI tools + posix shim: none have a runtime consumer in this layer.
+RUN rm -f /output/usr/bin/pcre2test /output/usr/bin/pcre2grep \
+          /output/usr/bin/pcre2-config /output/usr/lib/libpcre2-posix.so*
+
+
+# libffi — glib2 hard dep at runtime
+FROM downloader AS libffi
+WORKDIR /sources/libffi
+# --disable-multi-os-directory keeps libs in /usr/lib (not /usr/lib64)
+# hadolint ignore=SC2086
+RUN ./configure ${COMMON_CONFIGURE_ARGS} --disable-docs --libdir=/usr/lib --disable-multi-os-directory
+# hadolint ignore=SC2086
+RUN make -s -j${JOBS} && \
+    make -s -j${JOBS} install DESTDIR=/output
+
+
+# glib2 — qemu-ga main dep (GMainLoop, GIO, qmp transport).
+# -Dintrospection=disabled stops .gir/.typelib generation but does NOT skip
+# building libgirepository.so (since 2.80 the library was merged into glib's
+# own tree and is always compiled). It and the gi-* tools are stripped in
+# middle-clean since qemu-ga never links them.
+FROM downloader AS glib2
+COPY --from=pcre2 /output/ /
+COPY --from=libffi /output/ /
+WORKDIR /sources/glib
+# hadolint ignore=SC2086
+RUN meson setup buildDir ${COMMON_MESON_FLAGS} -Dselinux=disabled -Dxattr=false \
+    -Dlibmount=disabled -Dman-pages=disabled -Ddtrace=disabled -Dsystemtap=disabled -Dsysprof=disabled \
+    -Ddocumentation=false -Dtests=false -Dinstalled_tests=false -Dnls=disabled \
+    -Dglib_debug=disabled -Dglib_assert=false -Dglib_checks=false -Dlibelf=disabled \
+    -Dintrospection=disabled
+# hadolint ignore=DL3059
+RUN DESTDIR=/output ninja -C buildDir install
+
+
+# qemu-ga — only the guest agent target
+FROM downloader AS qemu-ga
+COPY --from=pcre2 /output/ /
+COPY --from=libffi /output/ /
+COPY --from=glib2 /output/ /
+WORKDIR /sources/qemu
+# --without-default-features flips every --enable-FEATURE off; we then only
+# turn the guest agent back on. Net effect: no qemu-system-*, qemu-img,
+# qemu-user, TCG, KVM, slirp, vnc, pixman, gnutls, etc. Anything pulled in
+# transitively by qemu-ga (glib2, qemuutil, qapi-gen) is still built.
+#
+# No --cross-prefix / --host: each hadron-toolchain image is single-arch
+# (one tag per arch — `hadron-toolchain:main-{amd64,arm64,riscv64}`), so
+# qemu's configure sees a native build and uses plain `cc` / `strip` /
+# `pkg-config`. (QEMU's configure ignores autotools-style --host anyway,
+# and --cross-prefix would demand a full set of prefixed binutils that the
+# toolchain image doesn't ship — the autotools stages above only get away
+# with --host=${TARGET} because autotools uses the prefix as a *hint*.)
+#
+# --disable-install-blobs is NOT a feature flag (it lives in "Advanced
+# options"), so --without-default-features doesn't kill it; left enabled
+# qemu's meson probes for `bzip2` which the toolchain doesn't have.
+#
+# --enable-fdt=disabled prevents meson from git-cloning the dtc subproject
+# when libfdt isn't on the system (it would always be missing here).
+# hadolint ignore=SC2086
+RUN ./configure \
+      --prefix=/usr \
+      --without-default-features \
+      --disable-install-blobs \
+      --enable-fdt=disabled \
+      --enable-strip \
+      --enable-guest-agent && \
+    make -s -j${JOBS} qemu-ga
+# meson lays the binary at build/qga/qemu-ga (target name = qga/qemu-ga).
+RUN strip build/qga/qemu-ga
+# Stage the binary + the upstream systemd unit into /output with the standard layout.
+RUN install -Dm755 build/qga/qemu-ga /output/usr/bin/qemu-ga && \
+    install -Dm644 contrib/systemd/qemu-guest-agent.service /output/usr/lib/systemd/system/qemu-guest-agent.service
+
+
+# Collect everything that needs to land in the final scratch layer.
+FROM scratch AS middle-collect
+COPY --from=pcre2   /output/ /
+COPY --from=libffi  /output/ /
+COPY --from=glib2   /output/ /
+COPY --from=qemu-ga /output/ /
+
+
+# Trim only the obvious dev/doc cruft. Also strips libgirepository + gi-* tools
+# (qemu-ga doesn't link them and glib 2.86 builds them unconditionally), plus
+# the unused pcre2-posix shim.
+FROM ghcr.io/kairos-io/hadron-toolchain:${HADRON_TOOLCHAIN_VERSION} AS middle-clean
+COPY --from=middle-collect / /merge
+RUN set -eu; \
+    rm -rf \
+      /merge/usr/include \
+      /merge/usr/share/man \
+      /merge/usr/share/info \
+      /merge/usr/share/doc \
+      /merge/usr/share/gtk-doc \
+      /merge/usr/share/aclocal \
+      /merge/usr/share/bash-completion \
+      /merge/usr/share/gettext \
+      /merge/usr/share/gdb \
+      /merge/usr/share/pkgconfig \
+      /merge/usr/share/locale \
+      /merge/usr/lib/pkgconfig \
+      /merge/usr/lib/girepository-1.0; \
+    rm -f /merge/usr/lib/libgirepository-*.so* \
+          /merge/usr/lib/libpcre2-posix.so* \
+          /merge/usr/bin/gi-compile-repository \
+          /merge/usr/bin/gi-decompile-typelib \
+          /merge/usr/bin/gi-inspect-typelib; \
+    find /merge -name '*.a' -delete; \
+    find /merge -name '*.la' -delete
+
+
+# Default: scratch image with just qemu-ga + its runtime libs.
+FROM scratch AS default
+COPY --link --from=middle-clean /merge/ /
+
+FROM quay.io/kairos/kairos-init:v0.14.1@sha256:69b214bfdf31c01299f364dbeae25ec2c3cee5affb314105f6782cd842671cc7 AS kairos-init
+
+FROM ghcr.io/kairos-io/hadron:v0.3.0@sha256:6078ad65b486cb13658a035360f6a83d57268deaab0f5bf9ca86580c1682fc2c AS base
+
+ARG KUBERNETES_DISTRO=k3s
+# renovate: datasource=custom.k3s depName=k3s
+ARG KUBERNETES_VERSION=v1.35.4+k3s1
+ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version ${KUBERNETES_VERSION}"
+ARG MODEL=generic
+ARG TRUSTED_BOOT=false
+ARG VERSION
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  eval /kairos-init -l debug \
+    -s install \
+    -m "${MODEL}" \
+    -t "${TRUSTED_BOOT}" \
+    -p "${KUBERNETES_DISTRO}" "${K8S_VERSION_FLAG}" \
+    --version "${VERSION}" \
+    --fips && \
+  eval /kairos-init -l debug \
+    -s init \
+    -m "${MODEL}" \
+    -t "${TRUSTED_BOOT}" \
+    -p "${KUBERNETES_DISTRO}" "${K8S_VERSION_FLAG}" \
+    --version "${VERSION}" \
+    --fips
+
+# hadolint ignore=DL3059
+RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
+  /kairos-init validate -t "${TRUSTED_BOOT}"
+
+# copy the qemu-ga layer in
+COPY --from=default / /
