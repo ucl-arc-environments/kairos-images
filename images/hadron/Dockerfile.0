@@ -156,45 +156,38 @@ RUN set -eu; \
 FROM scratch AS default
 COPY --link --from=middle-clean /merge/ /
 
-FROM quay.io/kairos/kairos-init:v0.14.0@sha256:f9cbde8dd9f7a6c29920a55ef37d73207028d2b28c645b5dea7cc39ab5233729 AS kairos-init
+FROM quay.io/kairos/kairos-init:v0.14.1@sha256:69b214bfdf31c01299f364dbeae25ec2c3cee5affb314105f6782cd842671cc7 AS kairos-init
 
 FROM ghcr.io/kairos-io/hadron:v0.3.0@sha256:6078ad65b486cb13658a035360f6a83d57268deaab0f5bf9ca86580c1682fc2c AS base
 
 ARG KUBERNETES_DISTRO=k3s
-ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
 # renovate: datasource=custom.k3s depName=k3s
 ARG KUBERNETES_VERSION=v1.35.4+k3s1
+ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version ${KUBERNETES_VERSION}"
 ARG MODEL=generic
 ARG TRUSTED_BOOT=false
 ARG VERSION
 
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
-  /kairos-init \
-  -s install \
-  --fips \
-  -p "${KUBERNETES_DISTRO}" \
-  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
-  -l debug \
-  -m "${MODEL}" \
-  -t "${TRUSTED_BOOT}" \
-  --version "${VERSION}"
-
-# copy the qemu-ga layer in
-COPY --from=default / /
-
-# hadolint ignore=DL3059
-RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
-  /kairos-init \
-  -s init \
-  --fips \
-  -p "${KUBERNETES_DISTRO}" \
-  "${K8S_VERSION_FLAG}" "${KUBERNETES_VERSION}" \
-  -l debug \
-  -m "${MODEL}" \
-  -t "${TRUSTED_BOOT}" \
-  --version "${VERSION}"
+  eval /kairos-init -l debug \
+    -s install \
+    -m "${MODEL}" \
+    -t "${TRUSTED_BOOT}" \
+    -p "${KUBERNETES_DISTRO}" "${K8S_VERSION_FLAG}" \
+    --version "${VERSION}" \
+    --fips && \
+  eval /kairos-init -l debug \
+    -s init \
+    -m "${MODEL}" \
+    -t "${TRUSTED_BOOT}" \
+    -p "${KUBERNETES_DISTRO}" "${K8S_VERSION_FLAG}" \
+    --version "${VERSION}" \
+    --fips
 
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init validate -t "${TRUSTED_BOOT}"
+
+# copy the qemu-ga layer in
+COPY --from=default / /
