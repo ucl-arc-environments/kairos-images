@@ -5,7 +5,7 @@ FROM almalinux:10@sha256:cc24bc5b6ac7e284f2f62a07bdaa1b15d3319fdcf46413c6b8fe9fa
 ARG KUBERNETES_DISTRO=k3s
 ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version"
 # renovate: datasource=custom.k3s depName=k3s
-ARG KUBERNETES_VERSION=v1.35.4+k3s1
+ARG KUBERNETES_VERSION=v1.35.5+k3s1
 ARG MODEL=generic
 ARG TRUSTED_BOOT=false
 ARG VERSION
