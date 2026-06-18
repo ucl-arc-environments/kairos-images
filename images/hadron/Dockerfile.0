@@ -1,4 +1,4 @@
-ARG HADRON_TOOLCHAIN_VERSION=v0.3.1@sha256:1170222343644460ca6de73f13eaba271ba946fd5d8365e73a1fbc03bbcdd91a
+ARG HADRON_TOOLCHAIN_VERSION=v0.4.0@sha256:4a65b102a6d763da93f1478f9a36735e1ad5a8dbf01fd23d1cce0ec11c2c218a
 
 
 FROM ghcr.io/kairos-io/hadron-toolchain:${HADRON_TOOLCHAIN_VERSION} AS downloader
@@ -156,9 +156,9 @@ RUN set -eu; \
 FROM scratch AS default
 COPY --link --from=middle-clean /merge/ /
 
-FROM quay.io/kairos/kairos-init:v0.14.1@sha256:69b214bfdf31c01299f364dbeae25ec2c3cee5affb314105f6782cd842671cc7 AS kairos-init
+FROM quay.io/kairos/kairos-init:v0.14.6@sha256:e53eb7e5ada035e7e192f072f9e041ca5d60440ecf8c766c32e7d95253b293e7 AS kairos-init
 
-FROM ghcr.io/kairos-io/hadron:v0.3.0@sha256:6078ad65b486cb13658a035360f6a83d57268deaab0f5bf9ca86580c1682fc2c AS base
+FROM ghcr.io/kairos-io/hadron:v0.4.0@sha256:1e19d9cd5a70dfc6940f58d899e72f6776f4d64934cd6f402f4a4186ccc40d4d AS base
 
 ARG KUBERNETES_DISTRO=k3s
 # renovate: datasource=custom.k3s depName=k3s
