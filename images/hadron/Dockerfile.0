@@ -162,7 +162,7 @@ FROM ghcr.io/kairos-io/hadron:v0.4.0@sha256:1e19d9cd5a70dfc6940f58d899e72f6776f4
 
 ARG KUBERNETES_DISTRO=k3s
 # renovate: datasource=custom.k3s depName=k3s
-ARG KUBERNETES_VERSION=v1.35.5+k3s1
+ARG KUBERNETES_VERSION=v1.36.2+k3s1
 ARG K8S_VERSION_FLAG="--provider-${KUBERNETES_DISTRO}-version ${KUBERNETES_VERSION}"
 ARG MODEL=generic
 ARG TRUSTED_BOOT=false
