@@ -7,7 +7,7 @@ repos:
         args:
           - --ignore=DL3008
   - repo: https://github.com/crate-ci/typos
-    rev: v1.47.0
+    rev: v1.48.0
     hooks:
       - id: typos
         args:
