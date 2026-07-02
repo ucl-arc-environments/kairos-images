@@ -21,7 +21,6 @@ jobs:
       max-parallel: 1
       matrix:
         distro:
-          - almalinux9
           - almalinux10
           - hadron0
         k3s_version:
