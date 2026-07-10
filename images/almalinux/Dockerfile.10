@@ -56,6 +56,28 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   -t "${TRUSTED_BOOT}" \
   --version "${VERSION}"
 
+# Add k3s-ready unit file
+# hadolint ignore=SC1072
+RUN <<EOF cat >> /etc/systemd/system/k3s-ready.service
+[Unit]
+Description=Kairos k3s booted stage runner (k3s)
+After=k3s.service
+
+[Service]
+Type=oneshot
+# provider-kairos.bootstrap.after.k3s-ready is run when k3s is up
+ExecStart=kairos-agent run-stage provider-kairos.bootstrap.after.k3s-ready
+TimeoutSec=30
+
+[Install]
+# Start this service (to run the stage) when the k3s service is ready
+WantedBy=k3s.service
+EOF
+
+# Enable services. early service is the one on the initramfs
+# hadolint ignore=DL3059
+RUN systemctl enable k3s-ready.service
+
 # hadolint ignore=DL3059
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init validate -t "${TRUSTED_BOOT}"
