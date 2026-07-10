@@ -4,7 +4,6 @@ This repository contains Dockerfiles for building
 "[Kairosified](https://kairos.io/v3.5.2/docs/advanced/creating_custom_cloud_images/)"
 images for:
 
-- AlmaLinux 9
 - Almanlinux 10
 - [Hadron](https://kairos.io/hadron-docs/)
 
