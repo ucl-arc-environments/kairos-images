@@ -1,4 +1,4 @@
-FROM quay.io/kairos/kairos-init:v0.15.0@sha256:4e147401a21025bc3dfe3c96925dcb167bfee9802ea59fe3e75a4b1cbac2eda8 AS kairos-init
+FROM quay.io/kairos/kairos-init:v0.16.1@sha256:866e98bf94f8b8b3d955ba55e88dccb2598fab53fbdea45effe91027c3dedf2e AS kairos-init
 
 FROM almalinux:10@sha256:cc24bc5b6ac7e284f2f62a07bdaa1b15d3319fdcf46413c6b8fe9fa245068ddd AS base-kairos
 
