@@ -4,5 +4,4 @@ metadata:
   name: default
 spec:
   # Configures Calico networking.
-  calicoNetwork:
-    @CONFIG@
+  @CONFIG@
