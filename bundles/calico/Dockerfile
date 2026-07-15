@@ -16,13 +16,13 @@ RUN curl -L -o /tmp/v1_crd_projectcalico_org.yaml \
   "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/v1_crd_projectcalico_org.yaml" && \
   curl -L -o /tmp/tigera-operator.yaml \
   "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/tigera-operator.yaml" && \
-  curl -L -o /tmp/custom-resources.yaml \
+  curl -L -o /tmp/calico-custom-resources.yaml \
   "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/custom-resources.yaml"
 
 FROM scratch
 COPY --from=build /usr/local/bin/kubectl /assets/kubectl
 COPY --from=build /tmp/v1_crd_projectcalico_org.yaml /assets/v1_crd_projectcalico_org.yaml
 COPY --from=build /tmp/tigera-operator.yaml /assets/tigera-operator.yaml
-COPY --from=build /tmp/custom-resources.yaml /assets/custom-resources.yaml
+COPY --from=build /tmp/calico-custom-resources.yaml /assets/calico-custom-resources.yaml
 COPY ./overlays /assets/overlays
 COPY ./run.sh /

@@ -18,8 +18,8 @@ if [ -n "$CONFIG" ]; then
   sed -i "s/@CONFIG@/${CONFIG}/g" "assets/overlays/installation.yaml"
 
   # kustomize the calico custom resources
-  cp assets/custom-resources.yaml assets/overlays/custom-resources.yaml
-  kubectl kustomize assets/overlays > assets/custom-resources.yaml
+  cp assets/calico-custom-resources.yaml assets/overlays/calico-custom-resources.yaml
+  kubectl kustomize assets/overlays > assets/calico-custom-resources.yaml
 fi
 
 # copy the calico manifests to the k3s manifest directory
