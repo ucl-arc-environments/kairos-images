@@ -152,9 +152,9 @@ RUN set -eu; \
     find /merge -name '*.la' -delete
 
 
-# Default: scratch image with just qemu-ga + its runtime libs.
+# Default: scratch image with just qemu-ga + its runtime libs under /usr.
 FROM scratch AS default
-COPY --link --from=middle-clean /merge/ /
+COPY --link --from=middle-clean /merge/usr/ /usr/
 
 FROM quay.io/kairos/kairos-init:v0.17.3@sha256:7f35a5025559ac2f1f5f52e89e52a91f67b783ef03ff1c1ac06a690a482e805d AS kairos-init
 
@@ -189,5 +189,5 @@ RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
 RUN --mount=type=bind,from=kairos-init,src=/kairos-init,dst=/kairos-init \
   /kairos-init validate -t "${TRUSTED_BOOT}"
 
-# copy the qemu-ga layer in
-COPY --from=default / /
+# copy the qemu-ga runtime subtree in
+COPY --from=default /usr/ /usr/
