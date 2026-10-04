@@ -156,7 +156,7 @@ RUN set -eu; \
 FROM scratch AS default
 COPY --link --from=middle-clean /merge/usr/ /usr/
 
-FROM quay.io/kairos/kairos-init:v0.17.3@sha256:7f35a5025559ac2f1f5f52e89e52a91f67b783ef03ff1c1ac06a690a482e805d AS kairos-init
+FROM quay.io/kairos/kairos-init:v4.3.0@sha256:c8c5d46234ddda93908f090f136fb12826e312286f63e0b6f316e4063edeea53 AS kairos-init
 
 FROM ghcr.io/kairos-io/hadron:v0.5.1@sha256:5568db99025fcca3e84ef1b16300a28299d0483e9a96ebd04bc7163fcee998de AS base
 
