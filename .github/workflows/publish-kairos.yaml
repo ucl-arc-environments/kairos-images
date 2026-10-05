@@ -24,10 +24,12 @@ jobs:
           - almalinux10
           - hadron0
         k3s_version:
-          # renovate: datasource=custom.k3s depName=k3s_build
-          - v1.34.8+k3s1
-          # renovate: datasource=custom.k3s depName=k3s_build
-          - v1.35.5+k3s1
+          # renovate: datasource=custom.k3s-minor depName=k3s_build
+          - v1.34.12+k3s1
+          # renovate: datasource=custom.k3s-minor depName=k3s_build
+          - v1.35.9+k3s1
+          # renovate: datasource=custom.k3s-minor depName=k3s_build
+          - v1.36.5+k3s1
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
