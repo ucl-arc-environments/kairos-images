@@ -73,7 +73,8 @@ jobs:
           # get the kairos-init version from the Dockerfile
           distro="${{ steps.versions.outputs.distro }}"
           distro_major_version="${{ steps.versions.outputs.distro_major_version }}"
-          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" "images/${distro}/Dockerfile.${distro_major_version}" | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
+          kairos_init_version="$(grep "^FROM quay.io/kairos/kairos-init:" "images/${distro}/Dockerfile.${distro_major_version}" \
+          | cut -d':' -f2 | awk -F '[@]' '{print $1}')"
 
           # compute the image tag based on the distro version, kairos-init and k3s versions
           kairos_tag="${distro_major_version}-standard-amd64-generic-${kairos_init_version}-k3s${{ matrix.k3s_version }}"
