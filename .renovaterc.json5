@@ -1,41 +1,19 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    "config:best-practices",
-    "schedule:monthly",
-    ":automergeBranch",
-    ":disableDependencyDashboard",
-    ":enablePreCommit",
-    ":label(renovate)",
-    ":prHourlyLimitNone",
-    ":prNotPending",
+    "github>ucl-arc-environments/.github//renovate/default-config.json5",
   ],
-  commitMessageAction: "Renovate:",
   packageRules: [
     {
-      description: "Automatically merge, minor and patch-level updates",
-      automerge: true,
-      matchManagers: ["dockerfile", "github-actions", "pre-commit"],
-      matchUpdateTypes: ["digest", "minor", "patch"],
+      description: "Parse k3s versions, including the +k3sN build suffix",
+      matchDatasources: ["custom.k3s", "custom.k3s-minor"],
+      versioning: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-(?<prerelease>[^+]+))?\\+k3s(?<build>\\d+)$",
     },
     {
-      description: "Shorten commit titles",
-      commitMessageTopic: "{{depName}}",
-      matchManagers: ["github-actions", "pre-commit"],
-    },
-    {
-      description: "Only allow major updates",
+      description: "Only allow patch updates for the k3s matrix in the publish workflow",
       enabled: false,
-      matchDepNames: ["renovatebot/pre-commit-hooks"],
-      matchUpdateTypes: ["minor", "patch", "pin"],
-    },
-    {
-      description: "Only allow patch updates for k3s in publish workflow",
-      enabled: false,
-      matchDatasources: ["custom.k3s"],
-      matchDepNames: ["k3s_build"],
-      matchFileNames: [".github/workflows/publish-kairos.yaml"],
-      matchUpdateTypes: ["major", "minor", "pin"],
+      matchDatasources: ["custom.k3s-minor"],
+      matchUpdateTypes: ["major", "minor"],
     },
     {
       description: "Support loose versioning",
@@ -45,9 +23,17 @@
   ],
   customDatasources: {
     k3s: {
+      description: "Latest release in the k3s stable channel",
       defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
       transformTemplates: [
         '{"releases":[{"version": $$.(data[id = \'stable\'].latest),"sourceUrl":"https://github.com/k3s-io/k3s","changelogUrl":$join(["https://github.com/k3s-io/k3s/releases/tag/",data[id = \'stable\'].latest])}],"sourceUrl": "https://github.com/k3s-io/k3s","homepage": "https://k3s.io/"}',
+      ],
+    },
+    "k3s-minor": {
+      description: "Latest release in each k3s minor channel (v1.34, v1.35, ...)",
+      defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
+      transformTemplates: [
+        '{"releases": [data[$match(id, /^v[0-9]+\\.[0-9]+$/)].{"version": latest, "changelogUrl": "https://github.com/k3s-io/k3s/releases/tag/" & latest}], "sourceUrl": "https://github.com/k3s-io/k3s", "homepage": "https://k3s.io/"}',
       ],
     },
   },
