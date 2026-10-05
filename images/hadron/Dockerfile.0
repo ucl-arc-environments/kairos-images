@@ -158,7 +158,7 @@ COPY --link --from=middle-clean /merge/usr/ /usr/
 
 FROM quay.io/kairos/kairos-init:v0.17.3@sha256:7f35a5025559ac2f1f5f52e89e52a91f67b783ef03ff1c1ac06a690a482e805d AS kairos-init
 
-FROM ghcr.io/kairos-io/hadron:v0.5.1@sha256:5568db99025fcca3e84ef1b16300a28299d0483e9a96ebd04bc7163fcee998de AS base
+FROM ghcr.io/kairos-io/hadron:v0.5.3@sha256:ebc9fcc724a34c9f359ced6401e815112b4ea8ff74c980a719fab3be45c471cf AS base
 
 ARG KUBERNETES_DISTRO=k3s
 # renovate: datasource=custom.k3s depName=k3s
