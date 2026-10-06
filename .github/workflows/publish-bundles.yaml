@@ -30,6 +30,7 @@ jobs:
         id: bundle
         env:
           TAG: ${{ github.event.release.tag_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |-
           # bundles/calico/v1.2.3 -> bundle=calico, version=1.2.3
           IFS=/ read -r _ bundle version extra <<< "${TAG}"
@@ -40,6 +41,11 @@ jobs:
           fi
           if [ ! -f "bundles/${bundle}/Dockerfile" ]; then
             echo "::error::No Dockerfile found for bundle '${bundle}' at bundles/${bundle}/Dockerfile"
+            exit 1
+          fi
+          # don't publish bundles that have since been removed
+          if [ -z "$(git ls-tree --name-only "origin/${DEFAULT_BRANCH}" "bundles/${bundle}/Dockerfile")" ]; then
+            echo "::error::Bundle '${bundle}' no longer exists on ${DEFAULT_BRANCH}"
             exit 1
           fi
 

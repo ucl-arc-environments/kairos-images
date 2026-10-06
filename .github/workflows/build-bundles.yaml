@@ -24,16 +24,33 @@ concurrency:
     ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
 
 jobs:
+  list-bundles:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      bundles: ${{ steps.list.outputs.bundles }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: List bundles
+        id: list
+        run: |-
+          # every directory under bundles/ with a Dockerfile, as a JSON array
+          bundles=$(printf '%s\n' bundles/*/Dockerfile | cut -d/ -f2 | jq -Rnc '[inputs]')
+          echo "Bundles: ${bundles}"
+          echo "bundles=${bundles}" >> "$GITHUB_OUTPUT"
+
   build-bundle:
+    needs: list-bundles
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     strategy:
       matrix:
-        bundle:
-          - calico
-          - kairos-operator
+        bundle: ${{ fromJSON(needs.list-bundles.outputs.bundles) }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
