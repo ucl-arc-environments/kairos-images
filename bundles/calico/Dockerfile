@@ -8,7 +8,7 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/
 
-# renovate: depName=tigera-operator repoUrl=https://docs.tigera.io/calico/charts
+# renovate: datasource=github-releases depName=projectcalico/calico
 ARG CALICO_VERSION=v3.32.1
 
 # Download the Calico manifests for the specified version
