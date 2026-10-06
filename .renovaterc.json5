@@ -6,19 +6,22 @@
   packageRules: [
     {
       description: "Parse k3s versions, including the +k3sN build suffix",
-      matchDatasources: ["custom.k3s", "custom.k3s-minor"],
+      matchDatasources: [
+        "custom.k3s",
+        "custom.k3s-minor-0",
+        "custom.k3s-minor-1",
+        "custom.k3s-minor-2",
+      ],
       versioning: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-(?<prerelease>[^+]+))?\\+k3s(?<build>\\d+)$",
     },
     {
-      description: "Only allow patch updates for the k3s matrix in the publish workflow",
-      enabled: false,
-      matchDatasources: ["custom.k3s-minor"],
-      matchUpdateTypes: ["major", "minor"],
-    },
-    {
-      description: "Support loose versioning",
-      matchDepNames: ["cmhughes/latexindent.pl", "shellcheck-py/shellcheck-py"],
-      versioning: "loose",
+      description: "Move the k3s matrix in the publish workflow together in a single PR",
+      groupName: "k3s publish matrix",
+      matchDatasources: [
+        "custom.k3s-minor-0",
+        "custom.k3s-minor-1",
+        "custom.k3s-minor-2",
+      ],
     },
   ],
   customDatasources: {
@@ -29,11 +32,27 @@
         '{"releases":[{"version": $$.(data[id = \'stable\'].latest),"sourceUrl":"https://github.com/k3s-io/k3s","changelogUrl":$join(["https://github.com/k3s-io/k3s/releases/tag/",data[id = \'stable\'].latest])}],"sourceUrl": "https://github.com/k3s-io/k3s","homepage": "https://k3s.io/"}',
       ],
     },
-    "k3s-minor": {
-      description: "Latest release in each k3s minor channel (v1.34, v1.35, ...)",
+    // The k3s-minor-N datasources each return the latest release of the minor
+    // N versions behind the stable channel, giving a sliding window of 3 minors.
+    "k3s-minor-0": {
+      description: "Latest release in the k3s stable minor channel",
       defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
       transformTemplates: [
-        '{"releases": [data[$match(id, /^v[0-9]+\\.[0-9]+$/)].{"version": latest, "changelogUrl": "https://github.com/k3s-io/k3s/releases/tag/" & latest}], "sourceUrl": "https://github.com/k3s-io/k3s", "homepage": "https://k3s.io/"}',
+        '($minor := function($v) { $number($split($v, ".")[1]) }; $v := data[$match(id, /^v[0-9]+\\.[0-9]+$/) and $minor(id) = $minor($$.data[id = "stable"].latest) - 0].latest; {"releases": [{"version": $v, "changelogUrl": "https://github.com/k3s-io/k3s/releases/tag/" & $v}], "sourceUrl": "https://github.com/k3s-io/k3s", "homepage": "https://k3s.io/"})',
+      ],
+    },
+    "k3s-minor-1": {
+      description: "Latest release in the k3s minor channel one behind stable",
+      defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
+      transformTemplates: [
+        '($minor := function($v) { $number($split($v, ".")[1]) }; $v := data[$match(id, /^v[0-9]+\\.[0-9]+$/) and $minor(id) = $minor($$.data[id = "stable"].latest) - 1].latest; {"releases": [{"version": $v, "changelogUrl": "https://github.com/k3s-io/k3s/releases/tag/" & $v}], "sourceUrl": "https://github.com/k3s-io/k3s", "homepage": "https://k3s.io/"})',
+      ],
+    },
+    "k3s-minor-2": {
+      description: "Latest release in the k3s minor channel two behind stable",
+      defaultRegistryUrlTemplate: "https://update.k3s.io/v1-release/channels",
+      transformTemplates: [
+        '($minor := function($v) { $number($split($v, ".")[1]) }; $v := data[$match(id, /^v[0-9]+\\.[0-9]+$/) and $minor(id) = $minor($$.data[id = "stable"].latest) - 2].latest; {"releases": [{"version": $v, "changelogUrl": "https://github.com/k3s-io/k3s/releases/tag/" & $v}], "sourceUrl": "https://github.com/k3s-io/k3s", "homepage": "https://k3s.io/"})',
       ],
     },
   },

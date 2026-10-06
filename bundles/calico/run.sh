@@ -15,7 +15,7 @@ fi
 
 if [ -n "$CONFIG" ]; then
   # template the calico installation overlay with the CONFIG from the config
-  sed -i "s/@CONFIG@/${CONFIG}/g" "assets/overlays/installation.yaml"
+  sed -i "s/# @CONFIG@/${CONFIG}/g" "assets/overlays/installation.yaml"
 
   # kustomize the calico custom resources
   cp assets/calico-custom-resources.yaml assets/overlays/calico-custom-resources.yaml

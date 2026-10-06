@@ -7,9 +7,9 @@ on:
       - main
       - renovate/**
     paths:
-      - "images/**"
-      - "!README.md"
-      - "!.github/workflows/*.yaml"
+      - images/**
+      - "!README.md" # yamllint disable-line
+      - "!.github/workflows/*.yaml" # yamllint disable-line
   pull_request:
     types:
       - opened
@@ -17,9 +17,9 @@ on:
       - reopened
       - synchronize
     paths:
-      - "images/**"
-      - "!README.md"
-      - "!.github/workflows/*.yaml"
+      - images/**
+      - "!README.md" # yamllint disable-line
+      - "!.github/workflows/*.yaml" # yamllint disable-line
 concurrency:
   cancel-in-progress: true
   group: >-

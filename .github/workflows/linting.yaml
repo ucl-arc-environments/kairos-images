@@ -22,23 +22,6 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Cache prek
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      - uses: ucl-arc-environments/.github/actions/linting@582ab7ba76dbb0c8c8496097c9afc7bcab70a0ac # v0.15.0
         with:
-          path: ~/.cache/prek
-          key: cache-${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-        with:
-          activate-environment: true
-          python-version: 3.14
-
-      - name: Install prek
-        run: uv pip install prek
-
-      - name: Run prek
-        run: uv run prek run --all-files --color always --verbose
+          pre-commit-config: ./.pre-commit-config.yaml
