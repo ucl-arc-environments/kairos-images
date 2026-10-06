@@ -1,0 +1,51 @@
+---
+name: Check PR scope
+
+# Images and bundles are released separately, so a pull request may change one
+# or the other but not both.
+# No paths filter, so that this can be a required status check.
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+
+concurrency:
+  cancel-in-progress: true
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number }}
+
+jobs:
+  check-scope:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Check changes are limited to images or bundles
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |-
+          files=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")
+          # the k3s matrix in publish-kairos.yaml determines the images built
+          images=$(grep -E '^(images/|\.github/workflows/publish-kairos\.yaml$)' <<< "${files}" || true)
+          bundles=$(grep -E '^bundles/' <<< "${files}" || true)
+
+          if [ -z "${images}" ] || [ -z "${bundles}" ]; then
+            echo "Changes are limited to images or bundles."
+            exit 0
+          fi
+
+          echo "Image changes:"
+          echo "${images}"
+          echo "Bundle changes:"
+          echo "${bundles}"
+          echo "::error::This PR changes both images and bundles. Split it into separate PRs."
+          exit 1
