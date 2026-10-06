@@ -1,0 +1,46 @@
+---
+name: Build bundles
+
+on:
+  push:
+    branches:
+      - main
+      - renovate/**
+    paths:
+      - bundles/**
+      - "!**/README.md" # yamllint disable-line
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+    paths:
+      - bundles/**
+      - "!**/README.md" # yamllint disable-line
+concurrency:
+  cancel-in-progress: true
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  build-bundle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        bundle:
+          - calico
+          - kairos-operator
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build bundle
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: ./bundles/${{ matrix.bundle }}
+          push: false
+          tags: ${{ matrix.bundle }}-bundle:dev
