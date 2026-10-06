@@ -1,0 +1,27 @@
+---
+name: Check release tag
+
+# The publish workflows skip releases whose tags they don't recognise, so fail
+# here to make a release with an unrecognised tag visible.
+on:
+  release:
+    types:
+      - prereleased
+      - released
+
+jobs:
+  check-release-tag:
+    if: >-
+      !startsWith(github.event.release.tag_name, 'images/v') &&
+      !startsWith(github.event.release.tag_name, 'bundles/')
+    runs-on: ubuntu-slim
+    permissions: {}
+
+    steps:
+      - name: Reject unrecognised release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |-
+          echo "::error::Release tag '${TAG}' is not recognised, so nothing was published.\
+          Use images/vX.Y.Z[-prerelease] or bundles/<bundle>/vX.Y.Z[-prerelease], then delete this release."
+          exit 1

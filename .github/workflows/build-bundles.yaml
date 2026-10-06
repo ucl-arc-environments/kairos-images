@@ -1,0 +1,63 @@
+---
+name: Build bundles
+
+on:
+  push:
+    branches:
+      - main
+      - renovate/**
+    paths:
+      - bundles/**
+      - "!**/README.md" # yamllint disable-line
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+    paths:
+      - bundles/**
+      - "!**/README.md" # yamllint disable-line
+concurrency:
+  cancel-in-progress: true
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  list-bundles:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      bundles: ${{ steps.list.outputs.bundles }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: List bundles
+        id: list
+        run: |-
+          # every directory under bundles/ with a Dockerfile, as a JSON array
+          bundles=$(printf '%s\n' bundles/*/Dockerfile | cut -d/ -f2 | jq -Rnc '[inputs]')
+          echo "Bundles: ${bundles}"
+          echo "bundles=${bundles}" >> "$GITHUB_OUTPUT"
+
+  build-bundle:
+    needs: list-bundles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        bundle: ${{ fromJSON(needs.list-bundles.outputs.bundles) }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build bundle
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: ./bundles/${{ matrix.bundle }}
+          push: false
+          tags: ${{ matrix.bundle }}-bundle:dev

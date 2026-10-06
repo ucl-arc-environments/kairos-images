@@ -1,49 +1,102 @@
 ---
 name: Publish bundles
 
+# Releases tagged bundles/<bundle>/vX.Y.Z build only the named bundle.
 on:
   release:
     types:
-      - published
+      - prereleased
+      - released
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-and-push-image:
+  release-scope:
+    if: startsWith(github.event.release.tag_name, 'bundles/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      bundle: ${{ steps.bundle.outputs.bundle }}
+      version: ${{ steps.bundle.outputs.version }}
 
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Compute bundle and version
+        id: bundle
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |-
+          # bundles/calico/v1.2.3 -> bundle=calico, version=1.2.3
+          IFS=/ read -r _ bundle version extra <<< "${TAG}"
+          if [ -z "${bundle}" ] || [ -n "${extra}" ] \
+            || [[ ! "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag '${TAG}' must be of the form bundles/<bundle>/vX.Y.Z[-prerelease]"
+            exit 1
+          fi
+          if [ ! -f "bundles/${bundle}/Dockerfile" ]; then
+            echo "::error::No Dockerfile found for bundle '${bundle}' at bundles/${bundle}/Dockerfile"
+            exit 1
+          fi
+          # don't publish bundles that have since been removed
+          if [ -z "$(git ls-tree --name-only "origin/${DEFAULT_BRANCH}" "bundles/${bundle}/Dockerfile")" ]; then
+            echo "::error::Bundle '${bundle}' no longer exists on ${DEFAULT_BRANCH}"
+            exit 1
+          fi
+
+          # shellcheck disable=SC2129
+          echo "bundle=${bundle}" >> "$GITHUB_OUTPUT"
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for changes and update release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+        run: |-
+          .github/scripts/release-scope.sh "${TAG}" "bundles/${BUNDLE}/v*" \
+            "bundles/${BUNDLE}/"
+
+  build-and-push-bundle:
+    needs: release-scope
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
-    strategy:
-      max-parallel: 1
-      matrix:
-        bundle:
-          - calico
-          - kairos-operator
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        if: ${{ !env.ACT }}
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract tags and labels for Docker
+      - name: Extract tags and labels
         id: meta
+        if: ${{ !env.ACT }}
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images:
-            ${{ env.REGISTRY }}/ucl-arc-environments/${{ matrix.bundle }}-bundle
+            ${{ env.REGISTRY }}/ucl-arc-environments/${{
+            needs.release-scope.outputs.bundle }}-bundle
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ needs.release-scope.outputs.version }}
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
-      - name: Build and push Docker image
+      - name: Build and push bundle
+        if: ${{ !env.ACT }}
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: ./bundles/${{ matrix.bundle }}
+          context: ./bundles/${{ needs.release-scope.outputs.bundle }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
